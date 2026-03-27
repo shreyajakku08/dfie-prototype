@@ -35,8 +35,19 @@
                 <button type="submit" class="btn-primary" id="scanBtn">Generate Intelligence</button>
             </form>
             <div id="loading" class="hidden">
-                <span class="spinner"></span> Scanning deep web sources...
+        </section>
+
+        <!-- Image EXIF Scan -->
+        <section class="glass-panel search-section" style="margin-top: 2rem;">
+            <h2>Forensic Image Scanner</h2>
+            <form id="imageForm" class="input-group">
+                <input type="file" id="imageInput" accept="image/*" class="glass-input" required>
+                <button type="submit" class="btn-primary" id="imageBtn">Extract Metadata</button>
+            </form>
+            <div id="imageLoading" class="hidden" style="margin-top: 1rem; color: #cbd5e1;">
+                <span class="spinner"></span> Analyzing image file...
             </div>
+            <div id="imageResults" class="hidden" style="margin-top: 1.5rem; text-align: left; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.5rem; white-space: pre-wrap; font-family: monospace; color: #a7f3d0; border-left: 4px solid var(--primary);"></div>
         </section>
 
         <!-- Dashboard Results (Hidden by default, shown for mockup here) -->
@@ -239,6 +250,50 @@
                 }]
             });
         }
+
+        // Image Forensics Upload Logic
+        document.getElementById('imageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('imageInput');
+            const imageBtn = document.getElementById('imageBtn');
+            const loading = document.getElementById('imageLoading');
+            const resultsDiv = document.getElementById('imageResults');
+            
+            if (fileInput.files.length === 0) return;
+            
+            // Reset UI state
+            imageBtn.disabled = true;
+            loading.classList.remove('hidden');
+            resultsDiv.classList.add('hidden');
+            resultsDiv.textContent = '';
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/scan-image', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const json = await response.json();
+                
+                if (response.ok && json.status === 'success') {
+                    // Prettify the JSON output
+                    resultsDiv.textContent = JSON.stringify(json.data, null, 2);
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    alert(json.message || json.error || 'Failed to analyze image.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred while uploading.');
+            } finally {
+                imageBtn.disabled = false;
+                loading.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
