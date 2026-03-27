@@ -1,12 +1,87 @@
-<!-- Base HTML Template -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DFIE - Digital Footprint Intelligence Engine</title>
+    <title>DFIE - Dashboard</title>
+    <!-- Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for Gauge -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Digital Footprint Intelligence Engine</h1>
+    <div class="background-blobs">
+        <div class="blob top-left"></div>
+        <div class="blob bottom-right"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="glass-panel text-center">
+            <h1 class="gradient-text">DFIE</h1>
+            <p>Digital Footprint Intelligence Engine</p>
+        </header>
+
+        <!-- Search Form -->
+        <section class="glass-panel search-section">
+            <h2>Scan a Identity Handle</h2>
+            <form id="scanForm" class="input-group">
+                <select id="scanType" class="glass-input">
+                    <option value="email">Email Address</option>
+                    <option value="username">Username / Handle</option>
+                </select>
+                <input type="text" id="identifierInput" placeholder="Enter identifier to scan..." class="glass-input" required>
+                <button type="submit" class="btn-primary" id="scanBtn">Generate Intelligence</button>
+            </form>
+            <div id="loading" class="hidden">
+                <span class="spinner"></span> Scanning deep web sources...
+            </div>
+        </section>
+
+        <!-- Dashboard Results (Hidden by default, shown for mockup here) -->
+        <div id="resultsDashboard" class="dashboard-grid hidden">
+            <!-- Left Col: Risk Score -->
+            <div class="glass-panel score-card">
+                <h3>Digital Risk Score</h3>
+                <div class="gauge-container">
+                    <canvas id="riskGauge"></canvas>
+                </div>
+                <h4 id="riskCategory" class="risk-label">Awaiting Scan</h4>
+            </div>
+
+            <!-- Right Col: Breaches & Platforms -->
+            <div class="right-col">
+                <div class="glass-panel">
+                    <h3>Data Breaches</h3>
+                    <ul id="breachList" class="data-list">
+                        <!-- Mock data for Step 5 UI layout demonstration -->
+                        <li class="list-item alert">
+                            <strong>Mockbook Social Network</strong>
+                            <p>Leaked: Passwords, Emails</p>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="glass-panel mt-2">
+                    <h3>Platforms Found</h3>
+                    <div id="platformTags" class="tag-container">
+                        <!-- Mock tags -->
+                        <span class="tag">GitHub</span>
+                        <span class="tag">Twitter</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- For Step 5, we just include the static UI setup. Script for Step 6 goes here later. -->
+    <script>
+        // Placeholder for Chart.js initialization logic (to be dynamic in step 6)
+        function initDummyChart() {
+            // We'll configure this properly when connecting the backend!
+            document.getElementById('resultsDashboard').classList.remove('hidden');
+        }
+    </script>
 </body>
 </html>

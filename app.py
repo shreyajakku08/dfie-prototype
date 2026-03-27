@@ -1,9 +1,14 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from breach_check import check_breaches
 from username_scan import scan_username
 from risk_score import calculate_risk_score
 
 app = Flask(__name__)
+
+@app.route('/', methods=['GET'])
+def index():
+    """Render the main dashboard UI."""
+    return render_template('index.html')
 
 @app.route('/scan', methods=['POST'])
 def scan_footprint():
