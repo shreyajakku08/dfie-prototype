@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from breach_check import check_breaches
+from username_scan import scan_username
 
 app = Flask(__name__)
 
@@ -21,12 +22,20 @@ def scan_footprint():
         "identifier": identifier,
         "type": scan_type,
         "breaches": [],
-        # Risk score and platform data will be added in later steps
+        "platforms": []
+        # Risk score will be added in later steps
     }
     
     if scan_type == 'email':
-        # Step 2: HIBP Breach Checker (using mock due to likely no API key)
+        # Step 2: HIBP Breach Checker
         results['breaches'] = check_breaches(identifier)
+        # We can extract a username from the email for the scanner
+        username_guess = identifier.split('@')[0]
+        results['platforms'] = scan_username(username_guess)
+        
+    elif scan_type == 'username':
+        # Step 3: Username scanner
+        results['platforms'] = scan_username(identifier)
         
     return jsonify({"status": "success", "data": results}), 200
 
