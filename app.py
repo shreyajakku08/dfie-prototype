@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from breach_check import check_breaches
 from username_scan import scan_username
 from risk_score import calculate_risk_score
-from exif_tools import extract_exif_data
+from exif_tools import analyze_image_forensics
 
 app = Flask(__name__)
 
@@ -77,7 +77,7 @@ def scan_image():
         file.save(filepath)
         
         # Extract Intelligence (Step 7)
-        metadata = extract_exif_data(filepath)
+        metadata = analyze_image_forensics(filepath)
         
         # Cleanup the uploaded file so we don't spam the disk space
         try:
@@ -85,7 +85,7 @@ def scan_image():
         except Exception:
             pass
             
-        if "error" in metadata:
+        if metadata.get("error"):
             return jsonify({"status": "error", "message": metadata["error"]}), 400
             
         return jsonify({"status": "success", "data": metadata}), 200
