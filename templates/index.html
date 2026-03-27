@@ -75,12 +75,169 @@
         </div>
     </div>
 
-    <!-- For Step 5, we just include the static UI setup. Script for Step 6 goes here later. -->
+    <!-- Application Script -->
     <script>
-        // Placeholder for Chart.js initialization logic (to be dynamic in step 6)
-        function initDummyChart() {
-            // We'll configure this properly when connecting the backend!
+        let riskChart = null;
+
+        document.getElementById('scanForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const identifier = document.getElementById('identifierInput').value;
+            const scanType = document.getElementById('scanType').value;
+            const scanBtn = document.getElementById('scanBtn');
+            const loading = document.getElementById('loading');
+            const dashboard = document.getElementById('resultsDashboard');
+
+            // Reset UI state
+            scanBtn.disabled = true;
+            loading.classList.remove('hidden');
+            dashboard.classList.add('hidden');
+            
+            try {
+                // Step 6: Backend Connection
+                const response = await fetch('/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier: identifier, type: scanType })
+                });
+
+                const json = await response.json();
+                
+                if (response.ok) {
+                    populateDashboard(json.data);
+                } else {
+                    alert(json.error || 'Failed to scan identity.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('A network error occurred.');
+            } finally {
+                scanBtn.disabled = false;
+                loading.classList.add('hidden');
+            }
+        });
+
+        function populateDashboard(data) {
+            // 1. Draw Risk Gauge
+            drawGauge(data.risk_score);
+            
+            // Set Category Label
+            const categoryEl = document.getElementById('riskCategory');
+            categoryEl.textContent = data.risk_category + " Risk";
+            
+            // Color code the text
+            if(data.risk_score >= 75) categoryEl.style.color = '#ef4444'; // Red
+            else if(data.risk_score >= 50) categoryEl.style.color = '#f97316'; // Orange
+            else if(data.risk_score >= 25) categoryEl.style.color = '#eab308'; // Yellow
+            else categoryEl.style.color = '#22c55e'; // Green
+
+            // 2. Populate Breaches
+            const breachList = document.getElementById('breachList');
+            breachList.innerHTML = ''; // Clear previous
+            
+            if (data.breaches.length === 0) {
+                breachList.innerHTML = '<li class="list-item"><p style="color:var(--text-light)">No breaches found. Great job!</p></li>';
+            } else {
+                data.breaches.forEach(breach => {
+                    const li = document.createElement('li');
+                    li.className = 'list-item alert';
+                    const titleStr = breach.Title || breach.Name;
+                    const classesStr = (breach.DataClasses || []).slice(0, 3).join(', ') + (breach.DataClasses && breach.DataClasses.length > 3 ? '...' : '');
+                    
+                    li.innerHTML = `
+                        <strong>${titleStr} (${(breach.BreachDate || "").split('-')[0]})</strong>
+                        <p>Leaked: ${classesStr}</p>
+                    `;
+                    breachList.appendChild(li);
+                });
+            }
+
+            // 3. Populate Platforms
+            const tagContainer = document.getElementById('platformTags');
+            tagContainer.innerHTML = ''; // Clear previous
+            
+            if (data.platforms && data.platforms.length > 0) {
+                data.platforms.forEach(plat => {
+                    const span = document.createElement('span');
+                    span.className = 'tag';
+                    // Make it clickable if there is a URL
+                    if (plat.url) {
+                        span.innerHTML = `<a href="${plat.url}" target="_blank" style="color:inherit; text-decoration:none;">${plat.platform} <span style="font-size:0.7em;">↗</span></a>`;
+                    } else {
+                        span.textContent = plat.platform;
+                    }
+                    tagContainer.appendChild(span);
+                });
+            } else {
+                tagContainer.innerHTML = '<span style="color:rgba(255,255,255,0.5);font-size:0.9rem;">No major platforms detected.</span>';
+            }
+
+            // Show the dashboard
             document.getElementById('resultsDashboard').classList.remove('hidden');
+        }
+
+        function drawGauge(score) {
+            const ctx = document.getElementById('riskGauge').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (riskChart) {
+                riskChart.destroy();
+            }
+
+            // Determine gauge color
+            let color = '#22c55e'; // default green
+            if(score >= 75) color = '#ef4444'; // red
+            else if(score >= 50) color = '#f97316'; // orange
+            else if(score >= 25) color = '#eab308'; // yellow
+
+            // Create a half-doughnut chart to simulate a gauge
+            riskChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Risk', 'Safe'],
+                    datasets: [{
+                        data: [score, 100 - score],
+                        backgroundColor: [color, 'rgba(255, 255, 255, 0.1)'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '80%', // Thin arc
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    }
+                },
+                plugins: [{
+                    // Plugin to draw text in the middle
+                    id: 'textCenter',
+                    beforeDraw: function(chart) {
+                        let width = chart.width,
+                            height = chart.height,
+                            ctx = chart.ctx;
+
+                        ctx.restore();
+                        let fontSize = (height / 80).toFixed(2);
+                        ctx.font = "bold " + fontSize + "em Outfit";
+                        ctx.textBaseline = "middle";
+                        ctx.fillStyle = "#fff";
+
+                        let text = score + "/100",
+                            textX = Math.round((width - ctx.measureText(text).width) / 2),
+                            textY = Math.round(height * 0.75); // Bottom inner circle
+
+                        ctx.fillText(text, textX, textY);
+                        ctx.save();
+                    }
+                }]
+            });
         }
     </script>
 </body>
