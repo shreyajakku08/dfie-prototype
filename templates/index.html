@@ -72,17 +72,28 @@
 
         <!-- Dashboard Results (Hidden by default, shown for mockup here) -->
         <div id="resultsDashboard" class="dashboard-grid hidden">
-            <!-- Left Col: Risk Score -->
-            <div id="scoreCard" class="glass-panel score-card" style="box-shadow: 0 0 20px rgba(0, 0, 0, 0.05); transition: box-shadow 0.5s ease;">
-                <h3><i class="fa-solid fa-shield-virus"></i> Digital Risk Score</h3>
-                <div class="gauge-container" style="position: relative; height: 160px;">
-                    <canvas id="riskGauge"></canvas>
-                    <div id="riskScoreValue" style="position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; font-size: 2.8rem; font-weight: 800; color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-                        0<span style="font-size: 1.2rem; color: rgba(255,255,255,0.5);">/100</span>
+            <!-- Left Col: Risk Score & AI Insight -->
+            <div class="left-col" style="display: flex; flex-direction: column; gap: 2rem;">
+                <!-- Digital Risk Score Panel -->
+                <div id="scoreCard" class="glass-panel score-card" style="box-shadow: 0 0 20px rgba(0, 0, 0, 0.05); transition: box-shadow 0.5s ease; margin: 0; max-width: 100%;">
+                    <h3><i class="fa-solid fa-shield-virus"></i> Digital Risk Score</h3>
+                    <div class="gauge-container" style="position: relative; height: 160px; max-width: 250px; margin: 1.5rem auto;">
+                        <canvas id="riskGauge"></canvas>
+                        <div id="riskScoreValue" style="position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; font-size: 2.8rem; font-weight: 800; color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                            0<span style="font-size: 1.2rem; color: rgba(255,255,255,0.5);">/100</span>
+                        </div>
                     </div>
+                    <h4 id="riskCategory" class="risk-label">Awaiting Scan</h4>
+                    <p id="riskExplanation" style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.4;"></p>
                 </div>
-                <h4 id="riskCategory" class="risk-label">Awaiting Scan</h4>
-                <p id="riskExplanation" style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.4;"></p>
+                
+                <!-- AI Insight Panel (Step 7) -->
+                <div id="aiInsightPanel" class="glass-panel" style="display: none; box-shadow: 0 0 20px rgba(139, 92, 246, 0.1); border-left: 3px solid var(--primary); text-align: left;">
+                    <h4 style="margin-top: 0; margin-bottom: 0.8rem; display:flex; align-items:center; gap: 8px; color: #e2e8f0; font-size: 1.1rem;">
+                        <i class="fa-solid fa-robot fa-bounce" style="--fa-animation-duration: 3s; color: var(--primary);"></i> AI Security Insight
+                    </h4>
+                    <p id="aiInsightText" style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin: 0; min-height: 60px;"></p>
+                </div>
             </div>
 
             <!-- Right Col: Breaches & Platforms -->
@@ -137,6 +148,7 @@
         let currentBaseScore = 0;
         let pointsSaved = 0;
         let totalRemediationPts = 0;
+        let typerInterval = null;
 
         document.getElementById('scanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -451,6 +463,39 @@
                    tree.innerHTML += breachBranch;
                 }
             }
+
+            // 6. Generate AI Insight Panel (Step 7)
+            clearInterval(typerInterval);
+            const aiPanel = document.getElementById('aiInsightPanel');
+            const aiText = document.getElementById('aiInsightText');
+            aiPanel.style.display = 'block';
+            aiText.innerHTML = '';
+            
+            let threatSummary = "";
+            let bCount = data.breaches ? data.breaches.length : 0;
+            let pCount = data.platforms ? data.platforms.length : 0;
+            
+            if (currentBaseScore >= 75) {
+                threatSummary = `CRITICAL THREAT DETECTED. Correlation engine discovered ${bCount} critical credential exposures combined with ${pCount} platform presences, expanding the attack surface. Immediate rotational lockdown recommended.`;
+            } else if (currentBaseScore >= 50) {
+                threatSummary = `ELEVATED RISK LEVEL. Engine correlated ${bCount} previous data exposures across ${pCount} public platforms. Malicious actors could leverage this footprint for targeted social engineering. Password rotation advised.`;
+            } else if (currentBaseScore >= 25) {
+                threatSummary = `MODERATE RISK. The subject has an average digital footprint mapping to ${pCount} open-source platforms. Vulnerability landscape contains ${bCount} historic exposures. Monitoring is sufficient.`;
+            } else {
+                threatSummary = `LOW RISK STATUS. Perimeter is holding. Surface footprint detected with minimal historic credential exposure (${bCount} breaches). Excellent digital posture.`;
+            }
+            
+            // Typewriter effect
+            let typeIdx = 0;
+            typerInterval = setInterval(() => {
+                if (typeIdx < threatSummary.length) {
+                    aiText.innerHTML += threatSummary.charAt(typeIdx);
+                    typeIdx++;
+                } else {
+                    clearInterval(typerInterval);
+                    aiText.innerHTML += '<span style="animation: bounce 1s infinite alternate; color: var(--primary);"> ▌</span>';
+                }
+            }, 30);
 
             // Show the dashboard
             document.getElementById('resultsDashboard').classList.remove('hidden');
