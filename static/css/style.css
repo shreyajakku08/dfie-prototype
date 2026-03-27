@@ -336,3 +336,59 @@ body {
     stroke: rgba(139, 92, 246, 0.2);
     stroke-opacity: 0.8;
 }
+
+/* 
+ * Executive Intelligence Report Setup 
+ * Uses native print-to-PDF while preserving Hacker Noir aesthetics
+ */
+@media print {
+    /* Force browsers to print our dark mode colors/backgrounds */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    body {
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Hide the UI upload forms and buttons */
+    .hero, 
+    .input-card, 
+    form, 
+    button, 
+    #exportPdfBtn,
+    .upload-section {
+        display: none !important;
+    }
+
+    /* Keep panels visible and bordered as physical blocks */
+    .glass-panel {
+        background: rgba(30, 41, 59, 0.9) !important;
+        border: 1px solid #334155 !important;
+        box-shadow: none !important;
+        margin-bottom: 2rem !important;
+        page-break-inside: avoid;
+    }
+
+    /* Ensure scroll boxes (like the Strings scan payload) unfold completely */
+    div[style*="overflow-y"] {
+        max-height: none !important;
+        overflow-y: visible !important;
+        height: auto !important;
+    }
+
+    h1, h2, h3, h4 {
+        page-break-after: avoid;
+    }
+
+    /* Ensure D3 canvas maps render cleanly */
+    svg {
+        background: rgba(0,0,0,0.2) !important;
+        border-radius: 8px !important;
+    }
+}

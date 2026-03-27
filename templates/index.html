@@ -74,6 +74,13 @@
 
         <!-- Dashboard Results (Hidden by default, shown for mockup here) -->
         <div id="resultsDashboard" class="dashboard-grid hidden">
+            <!-- Executive Export Button -->
+            <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-bottom: 0rem;">
+                <button id="exportPdfBtn" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; border-radius: 8px; padding: 0.8rem 1.5rem; color: #60a5fa; cursor: pointer; font-weight: bold; transition: all 0.3s ease; display:flex; gap: 8px; align-items: center;">
+                    <i class="fa-solid fa-file-pdf"></i> Export Intelligence Briefing (.pdf)
+                </button>
+            </div>
+            
             <!-- Left Col: Risk Score & AI Insight -->
             <div class="left-col" style="display: flex; flex-direction: column; gap: 2rem;">
                 <!-- Digital Risk Score Panel -->
@@ -806,6 +813,18 @@
                 loading.classList.add('hidden');
             }
         });
+
+        // Initialize Executive PDF Export Logic
+        const exportBtn = document.getElementById('exportPdfBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                // Relies on native print-to-pdf pipeline with @media print CSS hooks
+                window.print();
+            });
+            // Add slight hover effect manually since it's inline styled
+            exportBtn.addEventListener('mouseover', () => exportBtn.style.background = 'rgba(59, 130, 246, 0.3)');
+            exportBtn.addEventListener('mouseout', () => exportBtn.style.background = 'rgba(59, 130, 246, 0.15)');
+        }
     </script>
 </body>
 </html>
