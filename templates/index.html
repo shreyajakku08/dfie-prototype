@@ -117,6 +117,16 @@
                 <div id="checklistContainer" style="display: flex; flex-direction: column; gap: 0.8rem;">
                     <!-- Filled via JS -->
                 </div>
+                <!-- Remediation Progress Simulator -->
+                <div id="remediationProgressContainer" style="margin-top: 2rem; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                        <strong style="color: var(--text-light); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;"><i class="fa-solid fa-shield-halved"></i> Security Improvement Level</strong>
+                        <span id="remediationText" style="color: #22c55e; font-weight: bold; font-size: 0.9rem; transition: opacity 0.3s ease; opacity: 0; background: rgba(34,197,94,0.1); padding: 0.2rem 0.8rem; border-radius: 999px;"></span>
+                    </div>
+                    <div style="width: 100%; background: rgba(0,0,0,0.4); border-radius: 999px; height: 12px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+                        <div id="remediationProgressBar" style="width: 0%; background: linear-gradient(90deg, #3b82f6, #8b5cf6, #22c55e); height: 100%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(34,197,94,0.5);"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -126,6 +136,7 @@
         let riskChart = null;
         let currentBaseScore = 0;
         let pointsSaved = 0;
+        let totalRemediationPts = 0;
 
         document.getElementById('scanForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -288,19 +299,27 @@
             // 4. Remediation Checklist
             currentBaseScore = data.risk_score;
             pointsSaved = 0;
+            totalRemediationPts = 0;
             const checkContainer = document.getElementById('checklistContainer');
             const remPanel = document.getElementById('remediationPanel');
+            const progPanel = document.getElementById('remediationProgressContainer');
+            const progBar = document.getElementById('remediationProgressBar');
+            const remText = document.getElementById('remediationText');
+            
             checkContainer.innerHTML = '';
+            progBar.style.width = '0%';
+            remText.style.opacity = '0';
             
             let hasItems = false;
             if (data.breaches && data.breaches.length > 0) {
                 data.breaches.forEach((b, idx) => {
                     const ptValue = 20; 
+                    totalRemediationPts += ptValue;
                     hasItems = true;
                     const div = document.createElement('div');
-                    div.style = "display: flex; align-items: center; gap: 10px; background: rgba(255,100,100,0.1); padding: 10px; border-radius: 5px; border-left: 3px solid #ef4444;";
+                    div.style = "display: flex; align-items: center; gap: 10px; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 5px; border-left: 3px solid #ef4444; transition: all 0.2s ease;";
                     div.innerHTML = `
-                        <input type="checkbox" id="chk_b_${idx}" class="rem-checkbox" data-pts="${ptValue}" style="accent-color: var(--primary); transform: scale(1.2);">
+                        <input type="checkbox" id="chk_b_${idx}" class="rem-checkbox" data-pts="${ptValue}" style="accent-color: var(--primary); transform: scale(1.2); cursor: pointer;">
                         <label for="chk_b_${idx}" style="cursor: pointer; flex: 1; user-select: none;"><strong>Change password & enable 2FA</strong> for ${b.Title || b.Name} <span style="color:#ef4444; font-size:0.8rem; margin-left:10px;">(-${ptValue} Risk)</span></label>
                     `;
                     checkContainer.appendChild(div);
@@ -310,12 +329,13 @@
             if (data.platforms && data.platforms.length > 0) {
                 data.platforms.forEach((p, idx) => {
                     const ptValue = 5; 
+                    totalRemediationPts += ptValue;
                     hasItems = true;
                     const div = document.createElement('div');
-                    div.style = "display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px;";
+                    div.style = "display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 5px; border-left: 3px solid transparent; transition: all 0.2s ease;";
                     div.innerHTML = `
-                        <input type="checkbox" id="chk_p_${idx}" class="rem-checkbox" data-pts="${ptValue}" style="accent-color: var(--primary); transform: scale(1.2);">
-                        <label for="chk_p_${idx}" style="cursor: pointer; flex: 1; user-select: none;"><strong>Review privacy controls or secure</strong> your ${p.platform} account <span style="color:#eab308; font-size:0.8rem; margin-left:10px;">(-${ptValue} Risk)</span></label>
+                        <input type="checkbox" id="chk_p_${idx}" class="rem-checkbox" data-pts="${ptValue}" style="accent-color: var(--primary); transform: scale(1.2); cursor: pointer;">
+                        <label for="chk_p_${idx}" style="cursor: pointer; flex: 1; user-select: none;"><strong>Review privacy controls</strong> for ${p.platform} <span style="color:#eab308; font-size:0.8rem; margin-left:10px;">(-${ptValue} Risk)</span></label>
                     `;
                     checkContainer.appendChild(div);
                 });
@@ -323,22 +343,50 @@
             
             if (hasItems) {
                 remPanel.classList.remove('hidden');
+                progPanel.style.display = 'block';
             } else {
                 remPanel.classList.add('hidden');
+                progPanel.style.display = 'none';
             }
             
             document.querySelectorAll('.rem-checkbox').forEach(cb => {
                 cb.addEventListener('change', (e) => {
                     const pts = parseInt(e.target.getAttribute('data-pts'));
+                    const ptn = e.target.parentElement;
+                    const lbl = e.target.nextElementSibling;
+                    
                     if (e.target.checked) {
                         pointsSaved += pts;
-                        e.target.nextElementSibling.style.textDecoration = "line-through";
-                        e.target.nextElementSibling.style.opacity = "0.5";
+                        lbl.style.textDecoration = "line-through";
+                        lbl.style.opacity = "0.5";
+                        ptn.style.background = "rgba(34, 197, 94, 0.1)";
+                        ptn.style.borderLeftColor = "#22c55e";
+                        ptn.style.opacity = "0.7";
+                        
+                        remText.innerHTML = `<i class="fa-solid fa-arrow-trend-down"></i> -${pts} Risk Points`;
+                        remText.style.opacity = '1';
                     } else {
                         pointsSaved -= pts;
-                        e.target.nextElementSibling.style.textDecoration = "none";
-                        e.target.nextElementSibling.style.opacity = "1";
+                        lbl.style.textDecoration = "none";
+                        lbl.style.opacity = "1";
+                        ptn.style.opacity = "1";
+                        ptn.style.background = e.target.id.includes('chk_b') ? "rgba(239,68,68,0.1)" : "rgba(0,0,0,0.2)";
+                        ptn.style.borderLeftColor = e.target.id.includes('chk_b') ? "#ef4444" : "transparent";
+                        
+                        remText.style.opacity = '0';
                     }
+                    
+                    let pct = 0;
+                    if (totalRemediationPts > 0) {
+                        pct = (pointsSaved / totalRemediationPts) * 100;
+                    }
+                    progBar.style.width = pct + '%';
+                    
+                    const sc = document.getElementById('scoreCard');
+                    sc.style.transform = 'scale(1.03)';
+                    sc.style.transition = 'transform 0.2s ease';
+                    setTimeout(() => sc.style.transform = 'scale(1)', 200);
+                    
                     updateLiveScore();
                 });
             });
