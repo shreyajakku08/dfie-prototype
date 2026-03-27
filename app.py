@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from breach_check import check_breaches
 from username_scan import scan_username
+from risk_score import calculate_risk_score
 
 app = Flask(__name__)
 
@@ -22,8 +23,9 @@ def scan_footprint():
         "identifier": identifier,
         "type": scan_type,
         "breaches": [],
-        "platforms": []
-        # Risk score will be added in later steps
+        "platforms": [],
+        "risk_score": 0,
+        "risk_category": "Low"
     }
     
     if scan_type == 'email':
@@ -36,6 +38,11 @@ def scan_footprint():
     elif scan_type == 'username':
         # Step 3: Username scanner
         results['platforms'] = scan_username(identifier)
+    
+    # Step 4: Calculate Risk Score
+    risk_data = calculate_risk_score(results['breaches'], results['platforms'])
+    results['risk_score'] = risk_data['score']
+    results['risk_category'] = risk_data['category']
         
     return jsonify({"status": "success", "data": results}), 200
 
