@@ -11,6 +11,7 @@ def extract_exif_data(image_path):
         "device": "Unknown",
         "date_taken": "Unknown",
         "gps_coordinates": None,
+        "gps_dms_raw": None,
         "other_tags": []
     }
     
@@ -50,6 +51,16 @@ def extract_exif_data(image_path):
                             lon = 0 - lon
                             
                         metadata["gps_coordinates"] = f"{lat:.5f}, {lon:.5f}"
+                        
+                        # Preserve raw payload for visual telemetry 
+                        raw_lat_d, raw_lat_m, raw_lat_s = float(gps_data['GPSLatitude'][0]), float(gps_data['GPSLatitude'][1]), float(gps_data['GPSLatitude'][2])
+                        lat_ref = gps_data.get('GPSLatitudeRef', 'N')
+                        
+                        raw_lon_d, raw_lon_m, raw_lon_s = float(gps_data['GPSLongitude'][0]), float(gps_data['GPSLongitude'][1]), float(gps_data['GPSLongitude'][2])
+                        lon_ref = gps_data.get('GPSLongitudeRef', 'W')
+                        
+                        metadata['gps_dms_raw'] = f"{raw_lat_d}° {raw_lat_m}' {raw_lat_s}\" {lat_ref}, {raw_lon_d}° {raw_lon_m}' {raw_lon_s}\" {lon_ref}"
+                        
                     except Exception as ge:
                         metadata["gps_coordinates"] = "Found, but could not parse."
                         

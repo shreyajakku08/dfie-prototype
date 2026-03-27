@@ -1,42 +1,57 @@
 def calculate_risk_score(breaches, platforms):
     """
-    Calculates a digital risk score from 0 to 100 based on the findings.
-    - 0 means no digital footprint/risk found.
-    - 100 means extremely high risk (many breaches, lots of leaked sensitive info).
-    """
-    score = 0
+    Calculates the Digital Footprint Exposure Index (Risk Score). 
+    Backed by the Mathematical Weighted Risk Aggregate:
     
-    # 1. Evaluate Breaches (Heavy weight)
-    # Base penalty for each data breach found
-    for breach in breaches:
-        score += 20 
+        R = min(100, \\sum_{i=1}^{n} (w_i * p_i) + C)
         
-        # Additional penalty for highly sensitive data classes leaked
+    Where:
+        - w_i: The threat weight of the vulnerability (Platform impact)
+        - p_i: The presence of the data point (Number of platforms)
+        - C: The Critical modifier for historically severe breaches
+    """
+    
+    # Base accumulation for formula \\sum (w_i * p_i)
+    sigma_wp = 0
+    # Base critical decay modifier (C)
+    critical_mod_C = 0
+    
+    # 1. Evaluate Breaches (Critical Modifier C calculation)
+    # The 'C' variable aggregates explicit structural vulnerabilities
+    for breach in breaches:
+        # Each known breach adds a baseline critical weight of +20
+        critical_mod_C += 20 
+        
+        # Deep telemetry scanning for high-severity payloads
         sensitive_classes = ['Passwords', 'Credit cards', 'Social Security Numbers', 'Health data', 'Bank account numbers']
         classes = breach.get('DataClasses', [])
         for data_class in classes:
             if data_class in sensitive_classes:
-                score += 10
+                critical_mod_C += 10
                 
-    # 2. Evaluate Platforms (Light weight footprint tracking)
-    # A large public footprint inherently increases your attack surface
-    score += len(platforms) * 5
+    # 2. Evaluate Platforms (w_i * p_i calculation)
+    # p_i = number of platforms, w_i = standard expansion weight 5
+    p_i = len(platforms)
+    w_i = 5
+    sigma_wp += (w_i * p_i)
     
-    # Cap the score strictly between 0 and 100
-    if score > 100:
-        score = 100
+    # Solve final Risk Aggr algorithm R
+    R = sigma_wp + critical_mod_C
+    
+    # Cap the final score natively at 100 max
+    final_score = min(100, R)
         
-    # Determine risk category text for the UI
-    category = "Low"
-    if score >= 75:
-        category = "Critical"
-    elif score >= 50:
-        category = "High"
-    elif score >= 25:
-        category = "Moderate"
+    # Determine algorithmic risk category boundary for the UI
+    category = "LOW RISK"
+    if final_score >= 75:
+        category = "CRITICAL THREAT"
+    elif final_score >= 50:
+        category = "ELEVATED RISK"
+    elif final_score >= 25:
+        category = "MODERATE RISK"
         
     return {
-        "score": score,
+        "score": final_score,
         "category": category
     }
 
