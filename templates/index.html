@@ -56,7 +56,7 @@
             <div id="imageLoading" class="hidden" style="margin-top: 1rem; color: #cbd5e1;">
                 <span class="spinner"></span> Analyzing image file...
             </div>
-            <div id="imageResults" class="hidden" style="margin-top: 1.5rem; text-align: left; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.5rem; white-space: pre-wrap; font-family: monospace; color: #a7f3d0; border-left: 4px solid var(--primary);"></div>
+            <div id="imageResults" class="hidden" style="margin-top: 1.5rem; text-align: left; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 0.5rem; color: #a7f3d0; border-left: 4px solid var(--primary);"></div>
         </section>
 
         <!-- Identity Connections Graph (Step 8) -->
@@ -73,12 +73,16 @@
         <!-- Dashboard Results (Hidden by default, shown for mockup here) -->
         <div id="resultsDashboard" class="dashboard-grid hidden">
             <!-- Left Col: Risk Score -->
-            <div class="glass-panel score-card" style="box-shadow: 0 0 20px rgba(2ef, 68, 68, 0.05);">
+            <div id="scoreCard" class="glass-panel score-card" style="box-shadow: 0 0 20px rgba(0, 0, 0, 0.05); transition: box-shadow 0.5s ease;">
                 <h3><i class="fa-solid fa-shield-virus"></i> Digital Risk Score</h3>
-                <div class="gauge-container">
+                <div class="gauge-container" style="position: relative; height: 160px;">
                     <canvas id="riskGauge"></canvas>
+                    <div id="riskScoreValue" style="position: absolute; bottom: 0; left: 0; width: 100%; text-align: center; font-size: 2.8rem; font-weight: 800; color: #fff; text-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                        0<span style="font-size: 1.2rem; color: rgba(255,255,255,0.5);">/100</span>
+                    </div>
                 </div>
                 <h4 id="riskCategory" class="risk-label">Awaiting Scan</h4>
+                <p id="riskExplanation" style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-top: 0.5rem; line-height: 1.4;"></p>
             </div>
 
             <!-- Right Col: Breaches & Platforms -->
@@ -376,33 +380,61 @@
             drawGauge(newScore);
             
             const categoryEl = document.getElementById('riskCategory');
+            const explanationEl = document.getElementById('riskExplanation');
+            const cardEl = document.getElementById('scoreCard');
+            
+            // clear out previous glows
+            cardEl.className = "glass-panel score-card";
+            
             let cat = "Low Risk";
             let col = "#22c55e";
-            if(newScore >= 75) { cat = "Critical Risk"; col = "#ef4444"; }
-            else if(newScore >= 50) { cat = "High Risk"; col = "#f97316"; }
-            else if(newScore >= 25) { cat = "Moderate Risk"; col = "#eab308"; }
-            else if(newScore > 0) { cat = "Low Risk"; col = "#22c55e"; }
-            else { cat = "Secured!"; col = "#8b5cf6"; } // Purple when fully mitigated!
+            let expl = "Secure. Minimal footprint detected.";
+            
+            if(newScore >= 75) { 
+                cat = "Critical Risk"; col = "#ef4444"; 
+                expl = "Your data is highly exposed across multiple platforms and breaches.";
+                cardEl.classList.add('glow-high');
+            }
+            else if(newScore >= 50) { 
+                cat = "High Risk"; col = "#f97316"; 
+                expl = "Warning. Several data points exist that could compromise your privacy.";
+                cardEl.classList.add('glow-med');
+            }
+            else if(newScore >= 25) { 
+                cat = "Moderate Risk"; col = "#eab308"; 
+                expl = "Moderate footprint. Some public data exists.";
+                cardEl.classList.add('glow-warn');
+            }
+            else if(newScore > 0) { 
+                cat = "Low Risk"; col = "#22c55e"; 
+                expl = "Secure. Good job keeping your footprint small.";
+                cardEl.classList.add('glow-safe');
+            }
+            else { 
+                cat = "Secured!"; col = "#8b5cf6"; 
+                expl = "Excellent. You have mitigated all detected risks.";
+            } 
             
             categoryEl.textContent = cat;
             categoryEl.style.color = col;
+            explanationEl.textContent = expl;
         }
+
+        let scoreAnimation = null;
+        let drawnChartScore = 0;
 
         function drawGauge(score) {
             const ctx = document.getElementById('riskGauge').getContext('2d');
             
-            // Destroy existing chart if it exists
             if (riskChart) {
                 riskChart.destroy();
             }
 
-            // Determine gauge color
             let color = '#22c55e'; // default green
             if(score >= 75) color = '#ef4444'; // red
             else if(score >= 50) color = '#f97316'; // orange
             else if(score >= 25) color = '#eab308'; // yellow
 
-            // Create a half-doughnut chart to simulate a gauge
             riskChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
@@ -417,7 +449,8 @@
                 },
                 options: {
                     responsive: true,
-                    cutout: '80%', // Thin arc
+                    maintainAspectRatio: false,
+                    cutout: '80%', 
                     plugins: {
                         legend: { display: false },
                         tooltip: { enabled: false }
@@ -426,30 +459,33 @@
                         animateScale: true,
                         animateRotate: true
                     }
-                },
-                plugins: [{
-                    // Plugin to draw text in the middle
-                    id: 'textCenter',
-                    beforeDraw: function(chart) {
-                        let width = chart.width,
-                            height = chart.height,
-                            ctx = chart.ctx;
-
-                        ctx.restore();
-                        let fontSize = (height / 80).toFixed(2);
-                        ctx.font = "bold " + fontSize + "em Outfit";
-                        ctx.textBaseline = "middle";
-                        ctx.fillStyle = "#fff";
-
-                        let text = score + "/100",
-                            textX = Math.round((width - ctx.measureText(text).width) / 2),
-                            textY = Math.round(height * 0.75); // Bottom inner circle
-
-                        ctx.fillText(text, textX, textY);
-                        ctx.save();
-                    }
-                }]
+                }
             });
+            
+            // Animate number natively in DOM
+            animateScoreUp(score);
+        }
+
+        function animateScoreUp(targetScore) {
+            const el = document.getElementById('riskScoreValue');
+            if(!el) return;
+            
+            clearInterval(scoreAnimation);
+            let current = drawnChartScore; 
+            if (current === targetScore) return; // Prevent re-animating unchanged score instantly
+
+            const step = (targetScore - current) / 30; // 30 ticks
+            
+            scoreAnimation = setInterval(() => {
+                current += step;
+                // If counting up and passed target, or counting down and passed target
+                if ((step > 0 && current >= targetScore) || (step < 0 && current <= targetScore)) {
+                    current = targetScore;
+                    clearInterval(scoreAnimation);
+                }
+                drawnChartScore = Math.round(current);
+                el.innerHTML = `${drawnChartScore}<span style="font-size: 1.2rem; color: rgba(255,255,255,0.5);">/100</span>`;
+            }, 30);
         }
 
         // Image Forensics Upload Logic
@@ -467,7 +503,8 @@
             imageBtn.disabled = true;
             loading.classList.remove('hidden');
             resultsDiv.classList.add('hidden');
-            resultsDiv.textContent = '';
+            resultsDiv.classList.remove('fade-in');
+            resultsDiv.innerHTML = '';
             
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
@@ -481,9 +518,39 @@
                 const json = await response.json();
                 
                 if (response.ok && json.status === 'success') {
-                    // Prettify the JSON output
-                    resultsDiv.textContent = JSON.stringify(json.data, null, 2);
+                    const d = json.data;
+                    let html = `<h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;"><i class="fa-solid fa-file-invoice" style="color:var(--secondary);"></i> Extracted Metadata Report</h3>`;
+                    
+                    html += `<ul style="list-style: none; padding: 0; line-height: 1.8;">`;
+                    if (d.device) html += `<li><i class="fa-solid fa-mobile-screen-button" style="width:20px; color:#94a3b8;"></i> <strong>Device Origin:</strong> <span style="color:#e2e8f0;">${d.device}</span></li>`;
+                    if (d.date_taken) html += `<li><i class="fa-regular fa-calendar-days" style="width:20px; color:#94a3b8;"></i> <strong>Date Taken:</strong> <span style="color:#e2e8f0;">${d.date_taken}</span></li>`;
+                    html += `</ul>`;
+                    
+                    // Critical GPS Module styling
+                    if (d.gps_coordinates && !d.gps_coordinates.includes('error') && d.gps_coordinates !== "Found, but could not parse.") {
+                        const noSpaceCoords = d.gps_coordinates.replace(/\s+/g, '');
+                        html += `
+                        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 1rem; margin-top: 1rem; animation: fadeIn 0.5s ease;">
+                            <h4 style="color: #ef4444; margin-top: 0; display:flex; align-items:center; gap: 8px;">
+                                <i class="fa-solid fa-triangle-exclamation fa-fade"></i> CRITICAL: Location Extracted!
+                            </h4>
+                            <p style="margin: 0.5rem 0; font-size: 0.95rem; color: #fca5a5;">⚠ Your exact whereabouts can be extracted from this image.</p>
+                            <p style="font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem;">🎯 Coordinates: ${d.gps_coordinates}</p>
+                            <a href="https://www.google.com/maps/search/?api=1&query=${noSpaceCoords}" target="_blank" class="btn-primary" style="display: inline-block; background: #ef4444; border-color: #ef4444; margin-top: 0.5rem; text-decoration: none; font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                <i class="fa-solid fa-map-location-dot"></i> View on Google Maps
+                            </a>
+                        </div>`;
+                    } else if (d.error) {
+                        html += `<p style="color: #eab308; margin-top: 1rem;"><i class="fa-solid fa-circle-exclamation"></i> ${d.error}</p>`;
+                    } else {
+                        html += `<div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                            <p style="color: #22c55e; margin: 0;"><i class="fa-solid fa-shield-check"></i> Safe. No GPS coordinates found in this media.</p>
+                        </div>`;
+                    }
+                    
+                    resultsDiv.innerHTML = html;
                     resultsDiv.classList.remove('hidden');
+                    resultsDiv.classList.add('fade-in');
                 } else {
                     alert(json.message || json.error || 'Failed to analyze image.');
                 }
