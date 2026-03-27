@@ -36,7 +36,14 @@
                 <input type="text" id="identifierInput" placeholder="Enter identifier to scan..." class="glass-input" required>
                 <button type="submit" class="btn-primary" id="scanBtn">Generate Intelligence</button>
             </form>
-            <div id="loading" class="hidden">
+            <div id="loading" class="hidden" style="margin-top: 2rem; background: rgba(0,0,0,0.2); border-radius: 1rem; padding: 1.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                <h4 style="margin-top:0; color:var(--text-light); text-align:center;"><i class="fa-solid fa-satellite-dish fa-spin" style="color:var(--primary);"></i> Scanning digital footprint...</h4>
+                <ul style="list-style-type: none; padding-left: 0; color: #94a3b8; font-size: 0.95rem; line-height: 2.2; max-width: 300px; margin: 0 auto;">
+                    <li id="step1" style="transition: all 0.3s ease;"><i class="fa-solid fa-circle-notch fa-spin" style="color:#60a5fa;"></i> Checking known breaches <span style="font-size: 0.8em; float: right; color:#60a5fa;">[WAIT]</span></li>
+                    <li id="step2" style="opacity:0.3; transition: all 0.3s ease;"><i class="fa-solid fa-circle-notch fa-spin" style="color:#60a5fa;"></i> Scanning platforms <span style="font-size: 0.8em; float: right; color:#60a5fa;">[WAIT]</span></li>
+                    <li id="step3" style="opacity:0.3; transition: all 0.3s ease;"><i class="fa-solid fa-circle-notch fa-spin" style="color:#60a5fa;"></i> Analyzing risk matrix <span style="font-size: 0.8em; float: right; color:#60a5fa;">[WAIT]</span></li>
+                </ul>
+            </div>
         </section>
 
         <!-- Image EXIF Scan -->
@@ -129,19 +136,49 @@
             scanBtn.disabled = true;
             loading.classList.remove('hidden');
             dashboard.classList.add('hidden');
+            dashboard.classList.remove('fade-in');
+            
+            const s1 = document.getElementById('step1');
+            const s2 = document.getElementById('step2');
+            const s3 = document.getElementById('step3');
+            
+            // Reset loading steps visually
+            s1.style.opacity = '1'; s1.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color:#60a5fa;"></i> Checking known breaches <span style="font-size: 0.8em; float: right; color:#60a5fa;">[WAIT]</span>';
+            s2.style.opacity = '0.3'; s2.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color:#60a5fa;"></i> Scanning platforms <span style="font-size: 0.8em; float: right; color:#60a5fa;">[WAIT]</span>';
+            s3.style.opacity = '0.3'; s3.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="color:#60a5fa;"></i> Analyzing risk matrix <span style="font-size: 0.8em; float: right; color:#60a5fa;">[WAIT]</span>';
+
+            const delay = ms => new Promise(res => setTimeout(res, ms));
             
             try {
-                // Step 6: Backend Connection
-                const response = await fetch('/scan', {
+                // Kick off scan immediately in background
+                const fetchPromise = fetch('/scan', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ identifier: identifier, type: scanType })
                 });
 
+                // Simulate step 1 completion (Breaches)
+                await delay(1200);
+                s1.innerHTML = '<i class="fa-solid fa-check" style="color:#22c55e;"></i> Checked known breaches <span style="font-size: 0.8em; float: right; color:#22c55e;">[DONE]</span>';
+                s2.style.opacity = '1';
+                
+                // Simulate step 2 completion (Platforms)
+                await delay(1500);
+                s2.innerHTML = '<i class="fa-solid fa-check" style="color:#22c55e;"></i> Scanned platforms <span style="font-size: 0.8em; float: right; color:#22c55e;">[DONE]</span>';
+                s3.style.opacity = '1';
+                
+                // Await genuine backend results
+                const response = await fetchPromise;
                 const json = await response.json();
+                
+                // Simulate step 3 completion (Risk Matrix)
+                await delay(800);
+                s3.innerHTML = '<i class="fa-solid fa-check" style="color:#22c55e;"></i> Analyzed risk matrix <span style="font-size: 0.8em; float: right; color:#22c55e;">[DONE]</span>';
+                await delay(400); // suspense pause
                 
                 if (response.ok) {
                     populateDashboard(json.data);
+                    dashboard.classList.add('fade-in');
                 } else {
                     alert(json.error || 'Failed to scan identity.');
                 }
